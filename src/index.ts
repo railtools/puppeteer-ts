@@ -1,5 +1,6 @@
+import http from 'node:http';
 import puppeteer from 'puppeteer';
-import { Browser } from 'puppeteer';
+import type { Browser } from 'puppeteer';
 
 async function scrapeWebsite(): Promise<void> {
    let browser: Browser | undefined;
@@ -25,7 +26,7 @@ async function scrapeWebsite(): Promise<void> {
 
       // Navigate to website
       console.log('Navigating to website...');
-      await page.goto('https://railway.app', {
+      await page.goto('https://railway.com', {
          waitUntil: 'networkidle2'
       });
 
@@ -41,6 +42,8 @@ async function scrapeWebsite(): Promise<void> {
          console.log('Could not find h1 element');
       }
 
+      // TODO: Add your scraping logic here
+
       console.log('Scraping completed successfully!');
 
    } catch (error) {
@@ -54,6 +57,25 @@ async function scrapeWebsite(): Promise<void> {
    }
 }
 
-// Run the scraping function
-scrapeWebsite().catch(console.error);
+// Keep the service running with a small health endpoint, so Railway sees a
+// healthy deployment instead of a process that exited.
+const PORT = Number(process.env.PORT) || 3000;
+const server = http.createServer((req, res) => {
+   res.writeHead(200, { 'Content-Type': 'text/plain' });
+   res.end('OK');
+});
+server.listen(PORT, () => console.log(`Health endpoint listening on port ${PORT}`));
 
+process.on('SIGTERM', () => {
+   console.log('Shutting down');
+   server.close();
+   process.exit(0);
+});
+
+// Run the scraping function once, and again every SCRAPE_INTERVAL_MINUTES if set.
+const intervalMinutes = Number(process.env.SCRAPE_INTERVAL_MINUTES);
+await scrapeWebsite();
+if (intervalMinutes > 0) {
+   console.log(`Scraping again every ${intervalMinutes} minute(s)`);
+   setInterval(scrapeWebsite, intervalMinutes * 60 * 1000);
+}

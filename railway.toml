@@ -1,17 +1,10 @@
 [build]
-builder = "nixpacks"
+builder = "RAILPACK"
 
 [deploy]
-restartPolicyType = "never"
-
-[env]
-NODE_ENV = "production"
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-PUPPETEER_EXECUTABLE_PATH = "/usr/bin/google-chrome-stable"
-
-[build.args]
-NODE_VERSION = "20"
-
-[build.nixpacks]
-cmd = "npm run build && npm prune --production"
-
+# Run node directly (not `npm start`) so it receives SIGTERM and shuts Chrome down cleanly.
+startCommand = "node dist/index.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
